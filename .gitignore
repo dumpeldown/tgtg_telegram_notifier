@@ -1,8 +1,9 @@
 # Environment variables
 .env
 
-# TGTG credentials
+# TGTG credentials and database
 tgtg_credentials.json
+tgtg_offers.db
 
 # Python
 __pycache__/

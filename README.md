@@ -9,6 +9,25 @@ This project monitors your TooGoodToGo favorites for available offers and sends 
 - 🔄 **Automatic Monitoring**: Can be scheduled to run periodically
 - 💰 **Detailed Offers**: Shows price, savings, pickup times, and location
 - 🔒 **Secure**: Credentials stored locally and never shared
+- 🚫 **Duplicate Prevention**: Never get notified twice for the same offer
+- 🗄️ **SQLite Database**: Tracks sent notifications automatically
+- 🕐 **Smart Scheduling**: Perfect for cron jobs and automated monitoring
+
+## 🚫 Duplicate Prevention
+
+The system uses a SQLite database to track all sent notifications and prevents duplicate alerts for the same offer. This means:
+
+- ✅ **Same offer, same pickup time**: Only notified once
+- ✅ **Different pickup times**: Notified for each new time slot
+- ✅ **Automatic cleanup**: Old records are cleaned up after 7 days
+- ✅ **Perfect for scheduling**: Safe to run every 30 minutes without spam
+
+### Database Features
+
+- **Automatic tracking**: No setup required
+- **Smart deduplication**: Based on store, item, and pickup time
+- **Cleanup management**: Automatically removes old records
+- **Monitoring tools**: Built-in database statistics and management
 
 ## 📋 Setup Instructions
 
@@ -111,9 +130,12 @@ tgtg_notify/
 ├── telegram_notify.py       # Telegram notification system
 ├── tgtg_check.py           # TooGoodToGo integration
 ├── setup_tgtg.py           # TGTG authentication setup
+├── offer_database.py       # SQLite database for tracking notifications
+├── db_manage.py            # Database management and monitoring tools
 ├── .env                    # Environment variables (create from .env.example)
 ├── .env.example            # Environment variables template
 ├── tgtg_credentials.json   # TGTG credentials (auto-generated)
+├── tgtg_offers.db          # SQLite database (auto-generated)
 ├── README.md               # This file
 └── .gitignore             # Git ignore rules
 ```
@@ -122,18 +144,48 @@ tgtg_notify/
 
 ### Schedule Regular Checks
 
-You can schedule the script to run periodically:
+The system is designed for automated monitoring. The database prevents duplicate notifications, making it safe to run frequently:
 
 **Linux/macOS (cron):**
 ```bash
-# Check every 30 minutes
+# Check every 30 minutes (recommended)
 */30 * * * * cd /path/to/tgtg_notify && python -c "from tgtg_check import TGTGChecker; TGTGChecker().check_and_notify(send_summary=False)"
+
+# Or every 15 minutes for faster notifications
+*/15 * * * * cd /path/to/tgtg_notify && python -c "from tgtg_check import TGTGChecker; TGTGChecker().check_and_notify(send_summary=False)"
 ```
 
 **Windows (Task Scheduler):**
 - Create a new task
-- Set it to run your Python script every 30 minutes
+- Set it to run every 30 minutes
 - Use the command: `python -c "from tgtg_check import TGTGChecker; TGTGChecker().check_and_notify(send_summary=False)"`
+
+### Database Management
+
+Monitor and manage the notification database:
+
+```bash
+# View database statistics
+python db_manage.py stats
+
+# Show recent notifications (last 24 hours)
+python db_manage.py recent
+
+# Show recent notifications (custom hours)
+python db_manage.py recent 48
+
+# Clean up old records (older than 7 days)
+python db_manage.py cleanup
+
+# Clean up old records (custom days)
+python db_manage.py cleanup 14
+
+# Test database functionality
+python db_manage.py test
+
+# Reset database (delete all records)
+python db_manage.py reset
+```
 
 ### Create a Service Script
 

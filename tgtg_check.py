@@ -8,6 +8,7 @@ import pytz
 from tgtg import TgtgClient
 from dotenv import load_dotenv
 from telegram_notify import notify
+from offer_database import OfferDatabase
 
 # Load environment variables
 load_dotenv()
@@ -34,6 +35,7 @@ class TGTGChecker:
         self.client = None
         self.credentials_file = "tgtg_credentials.json"
         self.timezone = self._get_timezone()
+        self.db = OfferDatabase()  # Initialize offer database
         self._setup_client()
     
     def _get_timezone(self) -> str:
@@ -54,6 +56,10 @@ class TGTGChecker:
                     refresh_token=credentials['refresh_token'],
                     cookie=credentials['cookie']
                 )
+                
+                # Store original refresh token to detect changes
+                self._original_refresh_token = credentials['refresh_token']
+                
                 logger.info("✅ TGTG client initialized with saved credentials")
             else:
                 logger.warning("❌ No saved credentials found. You need to authenticate first.")
@@ -61,6 +67,34 @@ class TGTGChecker:
         except Exception as e:
             logger.error(f"Failed to initialize TGTG client: {e}")
             self.client = None
+    
+    def _update_credentials_if_changed(self):
+        """Update credentials file if tokens have been refreshed."""
+        if not self.client:
+            return
+            
+        try:
+            # Check if refresh token has changed (indicating token refresh occurred)
+            current_refresh_token = self.client.refresh_token
+            if hasattr(self, '_original_refresh_token') and current_refresh_token != self._original_refresh_token:
+                logger.info("🔄 Tokens were refreshed, updating credentials file...")
+                
+                new_credentials = {
+                    'access_token': self.client.access_token,
+                    'refresh_token': self.client.refresh_token,
+                    'cookie': self.client.cookie
+                }
+                
+                with open(self.credentials_file, 'w') as f:
+                    json.dump(new_credentials, f, indent=2)
+                
+                # Update our tracking variable
+                self._original_refresh_token = current_refresh_token
+                logger.info("✅ Credentials updated successfully")
+                
+        except Exception as e:
+            logger.warning(f"Failed to update credentials: {e}")
+            # Don't fail the whole operation if credential saving fails
     
     def authenticate(self, email: str) -> bool:
         """
@@ -253,19 +287,77 @@ class TGTGChecker:
         try:
             offers = self.get_favorites_with_offers()
             
+            # Update credentials if they were refreshed during the API call
+            self._update_credentials_if_changed()
+            
             if offers:
-                # Send notification for each offer with a small delay between messages
-                for i, offer in enumerate(offers):
-                    message = self.format_offer_message(offer)
-                    success = notify(message)
-                    if success:
-                        logger.info(f"✅ Sent notification for {offer['store']['store_name']}")
-                    else:
-                        logger.error(f"❌ Failed to send notification for {offer['store']['store_name']}")
+                new_offers = []
+                skipped_offers = []
+                
+                # Filter out offers we've already notified about
+                for offer in offers:
+                    store_id = offer['store']['store_id']
+                    item_id = offer['item_id']
+                    pickup_interval = offer.get('pickup_interval', {})
+                    pickup_start = pickup_interval.get('start', '')
+                    pickup_end = pickup_interval.get('end', '')
                     
-                    # Add a small delay between messages to avoid issues
-                    if i < len(offers) - 1:  # Don't delay after the last message
-                        time.sleep(1)
+                    # Check if we've already sent a notification for this exact offer
+                    if self.db.is_offer_already_sent(store_id, item_id, pickup_start, pickup_end):
+                        skipped_offers.append(offer)
+                        logger.info(f"⏭️ Skipping already notified offer: {offer['store']['store_name']} - {offer['display_name']}")
+                    else:
+                        new_offers.append(offer)
+                
+                logger.info(f"📊 Found {len(offers)} total offers: {len(new_offers)} new, {len(skipped_offers)} already notified")
+                
+                # Send notifications for new offers only
+                if new_offers:
+                    for i, offer in enumerate(new_offers):
+                        message = self.format_offer_message(offer)
+                        success = notify(message)
+                        
+                        if success:
+                            # Record the successful notification
+                            self.db.record_sent_offer(offer)
+                            logger.info(f"✅ Sent notification for {offer['store']['store_name']}")
+                        else:
+                            logger.error(f"❌ Failed to send notification for {offer['store']['store_name']}")
+                        
+                        # Add a small delay between messages to avoid issues
+                        if i < len(new_offers) - 1:  # Don't delay after the last message
+                            time.sleep(1)
+                    
+                    # Add delay before summary
+                    time.sleep(2)
+                    
+                    # Send summary for new offers
+                    if send_summary:
+                        summary = (
+                            f"🎉 <b>TGTG Summary</b>\n\n"
+                            f"Found <b>{len(new_offers)}</b> new favorite{'s' if len(new_offers) != 1 else ''} "
+                            f"with offers available!\n\n"
+                        )
+                        if skipped_offers:
+                            summary += f"(Skipped {len(skipped_offers)} already notified offer{'s' if len(skipped_offers) != 1 else ''})\n\n"
+                        
+                        summary += f"Check the messages above for details. 🚀"
+                        notify(summary)
+                
+                else:
+                    # All offers were already notified about
+                    if send_summary and skipped_offers:
+                        summary = (
+                            f"🔄 <b>TGTG Check Complete</b>\n\n"
+                            f"Found {len(skipped_offers)} offer{'s' if len(skipped_offers) != 1 else ''} "
+                            f"but you've already been notified about {'them' if len(skipped_offers) > 1 else 'it'}.\n\n"
+                            f"Will notify you when new offers become available! 👀"
+                        )
+                        notify(summary)
+                
+                # Clean up old database entries (keep last 7 days)
+                self.db.cleanup_old_offers(days_to_keep=7)
+                
                 return True
             
             else:
@@ -289,6 +381,18 @@ class TGTGChecker:
             )
             notify(error_message)
             return False
+    
+    def get_database_stats(self) -> dict:
+        """Get database statistics for monitoring."""
+        return self.db.get_database_stats()
+    
+    def get_recent_notifications(self, hours: int = 24) -> List:
+        """Get recent notifications for monitoring."""
+        return self.db.get_recent_offers(hours)
+    
+    def cleanup_old_notifications(self, days_to_keep: int = 7) -> int:
+        """Manually clean up old notification records."""
+        return self.db.cleanup_old_offers(days_to_keep)
 
 def main():
     """Main function for testing the TGTG checker."""
