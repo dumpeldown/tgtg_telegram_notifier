@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import pytz
 from tgtg import TgtgClient
 from dotenv import load_dotenv
-from telegram_notify import notify
+from telegram_notify import notify, notify_with_reservation_buttons
 from offer_database import OfferDatabase
 
 # Load environment variables
@@ -315,14 +315,18 @@ class TGTGChecker:
                 if new_offers:
                     for i, offer in enumerate(new_offers):
                         message = self.format_offer_message(offer)
-                        success = notify(message)
+                        store_name = offer['store']['store_name']
+                        item_id = offer['item_id']
+                        
+                        # Send notification with reservation buttons
+                        success = notify_with_reservation_buttons(message, item_id, store_name)
                         
                         if success:
                             # Record the successful notification
                             self.db.record_sent_offer(offer)
-                            logger.info(f"✅ Sent notification for {offer['store']['store_name']}")
+                            logger.info(f"✅ Sent notification with buttons for {store_name}")
                         else:
-                            logger.error(f"❌ Failed to send notification for {offer['store']['store_name']}")
+                            logger.error(f"❌ Failed to send notification for {store_name}")
                         
                         # Add a small delay between messages to avoid issues
                         if i < len(new_offers) - 1:  # Don't delay after the last message
