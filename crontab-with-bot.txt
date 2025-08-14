@@ -1,0 +1,32 @@
+# TGTG Telegram Notifier with Reservation Buttons - Crontab Configuration
+# This includes the bot handler for processing reservation button presses
+#
+# SETUP INSTRUCTIONS:
+# 1. Update PROJECT_DIR path below to match your installation
+# 2. Install with: crontab crontab-with-bot.txt
+# 3. Verify with: crontab -l
+
+# Environment variables for cron
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Set your project directory path here - CHANGE THIS TO YOUR ACTUAL PATH
+PROJECT_DIR=/home/pi/programming-fun/tgtg_telegram_notifier
+
+# Start bot handler at boot (handles reservation button presses)
+@reboot cd $PROJECT_DIR && nohup python3 start_bot.py >> $PROJECT_DIR/bot_handler.log 2>&1 &
+
+# Main TGTG notification job - runs every 15 minutes (now with reservation buttons)
+*/15 * * * * cd $PROJECT_DIR && python3 -c "from tgtg_check import TGTGChecker; TGTGChecker().check_and_notify(send_summary=False)" >> $PROJECT_DIR/cron_tgtg.log 2>&1
+
+# Daily dependency check at 6 AM
+0 6 * * * cd $PROJECT_DIR && python3 -m pip install --user python-telegram-bot tgtg pytz python-dotenv requests >> $PROJECT_DIR/cron_setup.log 2>&1
+
+# Weekly summary every Sunday at 6 PM
+0 18 * * 0 cd $PROJECT_DIR && python3 db_manage.py stats >> $PROJECT_DIR/cron_weekly.log 2>&1
+
+# Monthly cleanup on 1st day at 2 AM (keep last 30 days)
+0 2 1 * * cd $PROJECT_DIR && python3 -c "from offer_database import OfferDatabase; OfferDatabase().cleanup_old_offers(30)" >> $PROJECT_DIR/cron_cleanup.log 2>&1
+
+# Check bot handler is running every hour and restart if needed
+0 * * * * cd $PROJECT_DIR && pgrep -f "start_bot.py" > /dev/null || (nohup python3 start_bot.py >> $PROJECT_DIR/bot_handler.log 2>&1 &) && echo "$(date): Bot handler check/restart" >> $PROJECT_DIR/bot_monitor.log
