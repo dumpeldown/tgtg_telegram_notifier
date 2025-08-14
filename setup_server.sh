@@ -105,7 +105,7 @@ fi
 
 # Update crontab with correct paths
 echo "📅 Setting up crontab..."
-CRONTAB_FILE="$PROJECT_DIR/tgtg-15min-notify-crontab.txt"
+CRONTAB_FILE="$PROJECT_DIR/crontab-with-bot.txt"
 
 if [ -f "$CRONTAB_FILE" ]; then
     # Replace placeholder paths with actual paths
@@ -124,23 +124,6 @@ if [ -f "$CRONTAB_FILE" ]; then
 else
     echo "⚠️  Crontab file not found: $CRONTAB_FILE"
 fi
-
-# Create log directory
-mkdir -p "$PROJECT_DIR/logs"
-echo "📄 Created logs directory: $PROJECT_DIR/logs"
-
-# Set up log rotation (optional)
-echo "🔄 Setting up log rotation..."
-sudo tee "/etc/logrotate.d/tgtg-notifier" > /dev/null << EOF
-$PROJECT_DIR/*.log {
-    daily
-    rotate 7
-    compress
-    delaycompress
-    missingok
-    create 0644 $(whoami) $(whoami)
-}
-EOF
 
 echo ""
 echo "🎉 Setup completed successfully!"

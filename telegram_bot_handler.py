@@ -17,8 +17,6 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class TGTGBotHandler:
@@ -50,9 +48,10 @@ class TGTGBotHandler:
                 await self._handle_reserve_callback(query, callback_data)
             elif callback_data.startswith("cancel_reserve:"):
                 await self._handle_cancel_callback(query, callback_data)
+            elif callback_data.startswith("test"):
+                await query.edit_message_text("✅ Test action received.")
             else:
                 await query.edit_message_text("❌ Unknown action. Please try again.")
-        
         except Exception as e:
             logger.error(f"Error handling callback query: {e}")
             try:
