@@ -42,7 +42,9 @@ class TGTGChecker:
     def __init__(self):
         """Initialize the TGTG client."""
         self.client = None
-        self.credentials_file = "tgtg_credentials.json"
+        # Look for credentials file in parent directory (project root)
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.credentials_file = os.path.join(parent_dir, "tgtg_credentials.json")
         self.timezone = self._get_timezone()
         self.db = OfferDatabase()  # Initialize offer database
         self._setup_client()

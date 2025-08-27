@@ -37,7 +37,8 @@ class TGTGReservationManager:
         
     def _setup_client(self) -> TgtgClient:
         """Set up TGTG client with stored credentials."""
-        creds_file = os.path.join(os.path.dirname(__file__), 'tgtg_credentials.json')
+        # Credentials file is in the project root directory
+        creds_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tgtg_credentials.json')
         
         if not os.path.exists(creds_file):
             raise FileNotFoundError(f"TGTG credentials file not found: {creds_file}")

@@ -18,12 +18,12 @@ def main():
     """Test credential persistence functionality."""
     print("🧪 Testing TGTG Credential Persistence\n")
     
-    # Check if credentials file exists
-    creds_file = os.path.join(os.path.dirname(__file__), 'tgtg_credentials.json')
+    # Check if credentials file exists in project root
+    creds_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tgtg_credentials.json')
     
     if not os.path.exists(creds_file):
         print("❌ No credentials file found!")
-        print("Run setup_tgtg.py first to create credentials.")
+        print("Run common/setup_tgtg.py first to create credentials.")
         return
     
     print(f"📁 Credentials file: {creds_file}")
