@@ -5,8 +5,13 @@ This tests whether tokens are properly updated when they're refreshed.
 """
 
 import os
+import sys
 import json
-from tgtg_check import TGTGChecker
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from single_user.tgtg_check import TGTGChecker
 
 
 def main():

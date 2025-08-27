@@ -8,25 +8,15 @@ import sys
 import os
 import logging
 from datetime import datetime
-from telegram_bot_handler import TGTGBotHandler
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from single_user.telegram_bot_handler import TGTGBotHandler
 
 def main():
     """Start the bot handler."""
-    # Configure logging to only write to file, suppress console output
-    logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        level=logging.INFO,
-        handlers=[logging.FileHandler('bot_handler.log', encoding='utf-8')],
-        force=True  # Override any existing logging configuration
-    )
-    
-    # Disable console logging for all loggers
-    logging.getLogger().handlers = [h for h in logging.getLogger().handlers if not isinstance(h, logging.StreamHandler)]
-    
-    # Also disable logging for telegram library specifically
-    logging.getLogger('telegram').setLevel(logging.WARNING)
-    logging.getLogger('httpx').setLevel(logging.WARNING)
-    
+
     # Log the PID to bot_monitor.log when started manually
     pid = os.getpid()
     with open('bot_monitor.log', 'a') as f:

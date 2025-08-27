@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import logging
 import time
@@ -7,8 +8,16 @@ from datetime import datetime, timedelta
 import pytz
 from tgtg import TgtgClient
 from dotenv import load_dotenv
-from telegram_notify import notify, notify_with_reservation_buttons
-from offer_database import OfferDatabase
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from common.telegram_notify import notify, notify_with_reservation_buttons
+from single_user.offer_database import OfferDatabase
+from common.tgtg_exceptions import (
+    safe_tgtg_call, handle_tgtg_exception, get_user_friendly_error_message,
+    TGTGCaptchaException, TGTGServiceException
+)
 
 # Load environment variables
 load_dotenv()
@@ -111,7 +120,10 @@ class TGTGChecker:
             logger.info("📧 Please check your email and click the login link...")
             
             client = TgtgClient(email=email)
-            credentials = client.get_credentials()
+            credentials = safe_tgtg_call(
+                client.get_credentials,
+                operation="email authentication"
+            )
             
             # Save credentials for future use
             with open(self.credentials_file, 'w') as f:
@@ -121,6 +133,10 @@ class TGTGChecker:
             logger.info("✅ Authentication successful! Credentials saved.")
             return True
             
+        except (TGTGCaptchaException, TGTGServiceException) as tgtg_error:
+            logger.warning(f"TGTG service issue during authentication: {tgtg_error}")
+            notify(get_user_friendly_error_message(tgtg_error))
+            return False
         except Exception as e:
             logger.error(f"Authentication failed: {e}")
             return False

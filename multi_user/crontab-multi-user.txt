@@ -1,0 +1,36 @@
+# Multi-User TGTG Telegram Notifier - Crontab Configuration
+# This supports multiple users with individual TGTG accounts and notifications
+#
+# SETUP INSTRUCTIONS:
+# 1. Update PROJECT_DIR path below to match your installation
+# 2. Make sure you have a virtual environment at $PROJECT_DIR/venv
+# 3. Install with: crontab crontab-multi-user.txt
+# 4. Verify with: crontab -l
+
+# Environment variables for cron
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Set your project directory path here - CHANGE THIS TO YOUR ACTUAL PATH
+PROJECT_DIR=/home/pi/programming-fun/tgtg_telegram_notifier
+
+# Start multi-user bot handler at boot (handles user registration and reservations)
+@reboot cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && nohup python3 multi_user/start_multi_user_bot.py >> $PROJECT_DIR/multi_user_bot.log 2>&1 &'
+
+# Multi-user TGTG check - runs every 15 minutes for all registered users
+*/15 * * * * cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && python3 multi_user/multi_user_cron.py >> $PROJECT_DIR/multi_user_cron.log 2>&1'
+
+# Daily dependency check at 6 AM
+0 6 * * * cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && python3 -m pip install --upgrade python-telegram-bot tgtg pytz python-dotenv requests >> $PROJECT_DIR/cron_setup.log 2>&1'
+
+# Weekly database cleanup every Sunday at 3 AM (keep last 30 days for all users)
+0 3 * * 0 cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && python3 -c "import sys; sys.path.insert(0, \".\"); from multi_user.multi_user_db import get_multi_user_db; db = get_multi_user_db(); [db.cleanup_old_offers(user[\"user_id\"], 30) for user in db.get_all_active_users()]" >> $PROJECT_DIR/multi_user_cleanup.log 2>&1'
+
+# Check multi-user bot handler is running every hour and restart if needed
+0 * * * * cd $PROJECT_DIR && pgrep -f "start_multi_user_bot.py" > /dev/null || (/bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && nohup python3 multi_user/start_multi_user_bot.py >> $PROJECT_DIR/multi_user_bot.log 2>&1 &') && echo "$(date): Multi-user bot check/restart" >> $PROJECT_DIR/bot_monitor.log
+
+# Monthly database optimization on 1st day at 1 AM
+0 1 1 * * cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && python3 -c "import sqlite3; conn = sqlite3.connect(\"multi_user/multi_user.db\"); conn.execute(\"VACUUM\"); conn.close()" >> $PROJECT_DIR/db_optimize.log 2>&1'
+
+# Monthly database optimization on 1st day at 1 AM
+0 1 1 * * cd $PROJECT_DIR/multi_user && python3 -c "import sqlite3; conn = sqlite3.connect('multi_user.db'); conn.execute('VACUUM'); conn.close()" >> $PROJECT_DIR/db_optimize.log 2>&1

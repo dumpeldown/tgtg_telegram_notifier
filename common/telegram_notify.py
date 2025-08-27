@@ -101,9 +101,70 @@ class TelegramNotifier:
         except requests.exceptions.RequestException as e:
             logger.error(f"Request error while sending Telegram message: {e}")
             return False
+    def send_message_to_chat(self, message: str, chat_id: str, reply_markup=None) -> bool:
+        """
+        Send a message to a specific chat ID synchronously.
+        
+        Args:
+            message (str): The message to send
+            chat_id (str): The specific chat ID to send to
+            reply_markup: Optional inline keyboard markup
+            
+        Returns:
+            bool: True if message was sent successfully, False otherwise
+        """
+        try:
+            # Use requests for a more reliable synchronous approach
+            url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+            
+            data = {
+                'chat_id': chat_id,
+                'text': message,
+                'parse_mode': 'HTML'
+            }
+            
+            if reply_markup:
+                data['reply_markup'] = json.dumps(reply_markup.to_dict() if hasattr(reply_markup, 'to_dict') else reply_markup)
+            
+            response = requests.post(url, data=data, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('ok', False):
+                    logger.info(f"Message sent successfully to chat {chat_id}")
+                    return True
+                else:
+                    logger.error(f"Telegram API error: {result.get('description', 'Unknown error')}")
+                    return False
+            else:
+                logger.error(f"HTTP error {response.status_code}: {response.text}")
+                return False
+                
+        except requests.exceptions.Timeout:
+            logger.error("Request timeout while sending Telegram message")
+            return False
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error while sending Telegram message: {e}")
+            return False
         except Exception as e:
             logger.error(f"Unexpected error in synchronous message sending: {e}")
             return False
+
+    def send_offer_with_buttons_to_chat(self, message: str, item_id: str, store_name: str, chat_id: str) -> bool:
+        """
+        Send an offer message with reservation buttons to a specific chat.
+        
+        Args:
+            message (str): The offer message
+            item_id (str): The TGTG item ID
+            store_name (str): Name of the store
+            chat_id (str): The chat ID to send to
+            
+        Returns:
+            bool: True if message was sent successfully, False otherwise
+        """
+        keyboard = self.create_reservation_keyboard(item_id, store_name)
+        return self.send_message_to_chat(message, chat_id, reply_markup=keyboard)
 
     def create_reservation_keyboard(self, item_id: str, store_name: str) -> InlineKeyboardMarkup:
         """
@@ -253,6 +314,45 @@ def notify_with_reservation_buttons(message: str, item_id: str, store_name: str)
         return notifier.send_offer_with_buttons(message, item_id, store_name)
     except Exception as e:
         logger.error(f"Failed to send offer with buttons: {e}")
+        return False
+
+def notify_to_chat(message: str, chat_id: str, reply_markup=None) -> bool:
+    """
+    Send a notification to a specific chat ID.
+    
+    Args:
+        message (str): The message to send
+        chat_id (str): The chat ID to send to
+        reply_markup: Optional inline keyboard markup
+        
+    Returns:
+        bool: True if message was sent successfully, False otherwise
+    """
+    try:
+        notifier = get_notifier()
+        return notifier.send_message_to_chat(message, chat_id, reply_markup)
+    except Exception as e:
+        logger.error(f"Failed to send notification to chat {chat_id}: {e}")
+        return False
+
+def notify_with_reservation_buttons_to_chat(message: str, item_id: str, store_name: str, chat_id: str) -> bool:
+    """
+    Send a notification with reservation buttons to a specific chat.
+    
+    Args:
+        message (str): The offer message
+        item_id (str): The TGTG item ID
+        store_name (str): Name of the store
+        chat_id (str): The chat ID to send to
+        
+    Returns:
+        bool: True if message was sent successfully, False otherwise
+    """
+    try:
+        notifier = get_notifier()
+        return notifier.send_offer_with_buttons_to_chat(message, item_id, store_name, chat_id)
+    except Exception as e:
+        logger.error(f"Failed to send offer with buttons to chat {chat_id}: {e}")
         return False
 
 # For backward compatibility and convenience

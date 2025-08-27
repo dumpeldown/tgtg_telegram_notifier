@@ -13,6 +13,10 @@ from typing import Dict, Optional, Any
 from datetime import datetime, timedelta
 from tgtg import TgtgClient
 from telegram_notify import notify
+from tgtg_exceptions import (
+    safe_tgtg_call, handle_tgtg_exception, get_user_friendly_error_message,
+    TGTGCaptchaException, TGTGServiceException
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -60,7 +64,12 @@ class TGTGReservationManager:
             logger.info(f"🛒 Attempting to reserve bag from {store_name} (item: {item_id})")
             
             # Create the order/reservation
-            order = self.client.create_order(item_id, item_count=1)
+            order = safe_tgtg_call(
+                self.client.create_order,
+                operation=f"reserve bag from {store_name}",
+                item_id=item_id,
+                item_count=1
+            )
             order_id = order.get('id')
             
             if not order_id:
@@ -112,6 +121,16 @@ class TGTGReservationManager:
                 'auto_cancel_at': self.active_reservations[order_id]['auto_cancel_at']
             }
             
+        except (TGTGCaptchaException, TGTGServiceException) as tgtg_error:
+            error_msg = (
+                f"🚫 <b>Reservation Blocked</b>\n\n"
+                f"🏪 <b>Store:</b> {store_name}\n"
+                f"TGTG has temporarily blocked reservations due to high usage.\n\n"
+                f"🔄 <b>Try again in 15-30 minutes</b>"
+            )
+            logger.warning(f"TGTG service blocked reservation for {store_name}: {tgtg_error}")
+            notify(error_msg)
+            return {'success': False, 'error': str(tgtg_error), 'service_blocked': True}
         except Exception as e:
             error_msg = f"❌ <b>Reservation Failed</b>\n\n🏪 <b>Store:</b> {store_name}\n🚨 <b>Error:</b> {str(e)}"
             logger.error(f"Failed to reserve bag from {store_name}: {e}")
@@ -140,7 +159,11 @@ class TGTGReservationManager:
             store_name = reservation.get('store_name', 'Unknown Store')
             
             # Cancel the order via API
-            self.client.abort_order(order_id)
+            safe_tgtg_call(
+                self.client.abort_order,
+                operation=f"cancel reservation {order_id}",
+                order_id=order_id
+            )
             
             # Remove from active reservations
             if order_id in self.active_reservations:
@@ -161,6 +184,17 @@ class TGTGReservationManager:
             logger.info(f"✅ Successfully cancelled reservation {order_id} for {store_name}")
             return True
             
+        except (TGTGCaptchaException, TGTGServiceException) as tgtg_error:
+            error_msg = (
+                f"🚫 <b>Cancellation Blocked</b>\n\n"
+                f"🆔 <b>Order ID:</b> <code>{order_id}</code>\n"
+                f"TGTG has temporarily blocked API access.\n\n"
+                f"🔄 <b>Try cancelling in the TGTG app directly</b>\n"
+                f"Or wait 15-30 minutes and try again here."
+            )
+            logger.warning(f"TGTG service blocked cancellation for {order_id}: {tgtg_error}")
+            notify(error_msg)
+            return False
         except Exception as e:
             error_msg = f"❌ <b>Cancellation Failed</b>\n\n🆔 <b>Order ID:</b> <code>{order_id}</code>\n🚨 <b>Error:</b> {str(e)}"
             logger.error(f"Failed to cancel reservation {order_id}: {e}")

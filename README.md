@@ -1,21 +1,90 @@
-# TGTG Notify - TooGoodToGo Favorites Monitor with Telegram Notifications
+# TGTG Telegram Notifier
 
-This project monitors your TooGoodToGo favorites for available offers and sends instant Telegram notifications when deals become available.
+A Python application that monitors Too Good To Go for available offers and sends notifications via Telegram. This project supports both single-user and multi-user configurations.
+
+## 📁 Project Structure
+
+```
+tgtg_notify/
+├── common/                    # Shared components
+│   ├── telegram_notify.py     # Telegram notification functionality
+│   ├── tgtg_exceptions.py     # TGTG API exception handling
+│   ├── tgtg_reservation.py    # Reservation management
+│   ├── setup_tgtg.py          # TGTG setup utilities
+│   └── debug_offer_structure.py # Debugging tools
+├── single_user/              # Single-user version
+│   ├── main.py               # Main entry point
+│   ├── tgtg_check.py         # TGTG checking logic
+│   ├── offer_database.py     # Simple offer tracking
+│   ├── telegram_bot_handler.py # Basic bot interface
+│   └── start_bot.py          # Bot startup script
+├── multi_user/               # Multi-user version
+│   ├── multi_user_bot_handler.py # Advanced bot interface
+│   ├── multi_user_tgtg.py    # Multi-user TGTG logic
+│   ├── multi_user_db.py      # Multi-user database
+│   ├── multi_user_cron.py    # Scheduled checker
+│   ├── start_multi_user_bot.py # Bot startup script
+│   └── README_MULTI_USER.md  # Multi-user documentation
+├── tests/                    # Test suite
+│   └── test_*.py            # Various test files
+├── .env.example              # Environment variables template
+├── INSTALLATION.md           # Installation instructions
+└── README.md                 # This file
+```
+
+## 🚀 Quick Start
+
+### Single-User Version
+```bash
+# Navigate to single-user directory
+cd single_user
+
+# Run the main script
+python3 main.py
+
+# Or start the bot
+python3 start_bot.py
+```
+
+### Multi-User Version
+```bash
+# Navigate to multi-user directory  
+cd multi_user
+
+# Start the bot handler
+python3 start_multi_user_bot.py
+
+# Or run the cron job
+python3 multi_user_cron.py
+```
 
 ## 🚀 Features
 
+### Single-User Features
 - 🍽️ **TGTG Integration**: Automatically checks your TooGoodToGo favorites
 - 📱 **Telegram Notifications**: Instant notifications when offers are found
 - 🔄 **Automatic Monitoring**: Can be scheduled to run periodically
 - 💰 **Detailed Offers**: Shows price, savings, pickup times, and location
 - 🔒 **Secure**: Credentials stored locally and never shared
 - 🚫 **Duplicate Prevention**: Never get notified twice for the same offer
-- 🗄️ **SQLite Database**: Tracks sent notifications automatically
-- 🕐 **Smart Scheduling**: Perfect for cron jobs and automated monitoring
+
+### Multi-User Features
+- � **Multiple Users**: Support for multiple TGTG accounts
+- 🔐 **Individual Credentials**: Each user has their own TGTG login
+- 📊 **Per-User Tracking**: Individual notification history
+- 🤖 **Advanced Bot Interface**: User registration and management
+- � **User Database**: SQLite database for user data
+- 🎛️ **Reservation Management**: Handle TGTG reservations through bot
+
+## 📚 Documentation
+
+- **Installation**: See `INSTALLATION.md` for setup instructions
+- **Multi-User Setup**: See `multi_user/README_MULTI_USER.md` for advanced features
+- **Testing**: See `tests/` directory for test scripts
 
 ## 🚫 Duplicate Prevention
 
-The system uses a SQLite database to track all sent notifications and prevents duplicate alerts for the same offer. This means:
+Both versions use SQLite databases to track sent notifications and prevent duplicate alerts:
 
 - ✅ **Same offer, same pickup time**: Only notified once
 - ✅ **Different pickup times**: Notified for each new time slot

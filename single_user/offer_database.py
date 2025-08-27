@@ -266,7 +266,7 @@ if __name__ == "__main__":
     print("🗄️ Testing Offer Database...")
     
     # Initialize database
-    db = OfferDatabase("test_offers.db")
+    db = OfferDatabase("tests/test_offers.db")
     
     # Test offer data
     test_offer = {
@@ -299,6 +299,6 @@ if __name__ == "__main__":
     print("\n🎉 Database test completed!")
     
     # Clean up test database
-    if os.path.exists("test_offers.db"):
-        os.remove("test_offers.db")
+    if os.path.exists("tests/test_offers.db"):
+        os.remove("tests/test_offers.db")
         print("🧹 Test database cleaned up")

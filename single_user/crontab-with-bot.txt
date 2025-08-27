@@ -1,0 +1,36 @@
+# TGTG Telegram Notifier with Bot Handler - Crontab Configuration
+# Includes both TGTG monitoring and bot handler for reservations
+#
+# SETUP INSTRUCTIONS:
+# 1. Update PROJECT_DIR path below to match your installation
+# 2. Make sure you have a virtual environment at $PROJECT_DIR/venv
+# 3. Install with: crontab crontab-with-bot.txt
+# 4. Verify with: crontab -l
+
+# Environment variables for cron
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Set your project directory path here - CHANGE THIS TO YOUR ACTUAL PATH
+PROJECT_DIR=/home/pi/programming-fun/tgtg_telegram_notifier
+
+# Start bot handler at boot for reservation functionality
+@reboot cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && nohup python3 single_user/start_bot.py >> $PROJECT_DIR/bot_handler.log 2>&1 &'
+
+# Main TGTG notification job with reservation buttons - runs every 15 minutes
+*/15 * * * * cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && python3 -c "import sys; sys.path.insert(0, \".\"); from single_user.tgtg_check import TGTGChecker; TGTGChecker().check_and_notify(send_summary=False)" >> $PROJECT_DIR/cron_tgtg.log 2>&1'
+
+# Daily dependency check at 6 AM
+0 6 * * * cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && python3 -m pip install --upgrade python-telegram-bot tgtg pytz python-dotenv requests >> $PROJECT_DIR/cron_setup.log 2>&1'
+
+# Check bot handler is running every hour and restart if needed
+0 * * * * cd $PROJECT_DIR && pgrep -f "start_bot.py" > /dev/null || (/bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && nohup python3 single_user/start_bot.py >> $PROJECT_DIR/bot_handler.log 2>&1 &') && echo "$(date): Bot handler check/restart" >> $PROJECT_DIR/bot_monitor.log
+
+# Weekly summary every Sunday at 6 PM
+0 18 * * 0 cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && python3 single_user/db_manage.py stats >> $PROJECT_DIR/cron_weekly.log 2>&1'
+
+# Monthly database cleanup on 1st day at 2 AM (keep last 7 days)
+0 2 1 * * cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && python3 -c "import sys; sys.path.insert(0, \".\"); from single_user.offer_database import OfferDatabase; OfferDatabase().cleanup_old_records(7)" >> $PROJECT_DIR/cleanup.log 2>&1'
+
+# Monthly database optimization
+0 3 1 * * cd $PROJECT_DIR && /bin/bash -c 'source $PROJECT_DIR/venv/bin/activate && python3 -c "import sqlite3; conn = sqlite3.connect(\"single_user/tgtg_offers.db\"); conn.execute(\"VACUUM\"); conn.close()" >> $PROJECT_DIR/db_optimize.log 2>&1'

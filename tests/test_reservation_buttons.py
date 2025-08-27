@@ -6,8 +6,12 @@ Tests the reservation system with mock data.
 
 import os
 import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram_notify import notify_with_reservation_buttons, get_notifier
+from common.telegram_notify import notify_with_reservation_buttons, get_notifier
 
 def test_reservation_buttons():
     """Test sending a notification with reservation buttons."""

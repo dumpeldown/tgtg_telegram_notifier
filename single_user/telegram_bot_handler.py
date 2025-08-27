@@ -5,14 +5,19 @@ Handles callback queries from inline keyboard buttons.
 """
 
 import os
+import sys
 import json
 import logging
 from typing import Dict, Any
 from telegram import Update
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes
-from telegram_notify import get_notifier
-from tgtg_reservation import get_reservation_manager
 from dotenv import load_dotenv
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from common.telegram_notify import get_notifier
+from common.tgtg_reservation import get_reservation_manager
 
 # Load environment variables
 load_dotenv()

@@ -5,6 +5,9 @@
 tgtg_credentials.json
 tgtg_offers.db
 
+# Test databases (generated during testing)
+tests/*.db
+
 # Python
 __pycache__/
 *.py[cod]

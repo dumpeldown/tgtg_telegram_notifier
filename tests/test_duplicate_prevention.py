@@ -3,6 +3,12 @@
 Quick test to verify the duplicate prevention system works correctly.
 """
 
+import os
+import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 def test_duplicate_prevention():
     """Test the duplicate prevention functionality."""
     
@@ -10,7 +16,7 @@ def test_duplicate_prevention():
     print("=" * 50)
     
     try:
-        from tgtg_check import TGTGChecker
+        from single_user.tgtg_check import TGTGChecker
         
         # Initialize checker (this will create the database)
         checker = TGTGChecker()

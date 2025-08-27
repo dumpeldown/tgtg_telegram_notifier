@@ -4,10 +4,15 @@ Database Management Script for TGTG Offer Notifications
 """
 
 import sys
+import os
 from datetime import datetime, timedelta
-from tgtg_check import TGTGChecker
-from offer_database import OfferDatabase
-from telegram_notify import notify
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from single_user.tgtg_check import TGTGChecker
+from single_user.offer_database import OfferDatabase
+from common.telegram_notify import notify
 
 def show_database_stats():
     """Show database statistics."""
@@ -73,7 +78,7 @@ def test_database():
     
     try:
         # Test database initialization
-        db = OfferDatabase("test_db.db")
+        db = OfferDatabase("tests/test_db.db")
         print("✅ Database initialization: OK")
         
         # Test offer recording
@@ -108,8 +113,8 @@ def test_database():
         
         # Clean up test database
         import os
-        if os.path.exists("test_db.db"):
-            os.remove("test_db.db")
+        if os.path.exists("tests/test_db.db"):
+            os.remove("tests/test_db.db")
             print("🧹 Test database cleaned up")
             
     except Exception as e:

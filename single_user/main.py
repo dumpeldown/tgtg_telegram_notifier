@@ -3,9 +3,15 @@
 TGTG Notify - Complete TooGoodToGo favorites checker with Telegram notifications
 """
 
+import sys
+import os
 import time
-from telegram_notify import notify
-from tgtg_check import TGTGChecker
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from common.telegram_notify import notify
+from single_user.tgtg_check import TGTGChecker
 
 def demo_notifications():
     """Demo function showing basic notification functionality."""
