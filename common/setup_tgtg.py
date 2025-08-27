@@ -4,9 +4,14 @@ TGTG Authentication Setup Script
 Run this script to authenticate your TooGoodToGo account for the first time.
 """
 
-from tgtg_check import TGTGChecker
-from telegram_notify import notify
+import os
 import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from single_user.tgtg_check import TGTGChecker
+from common.telegram_notify import notify
 
 def setup_tgtg_authentication():
     """Interactive setup for TGTG authentication."""

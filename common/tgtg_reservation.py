@@ -5,6 +5,7 @@ Handles the reservation and cancellation of TGTG bags via the API.
 """
 
 import os
+import sys
 import json
 import time
 import threading
@@ -12,8 +13,12 @@ import logging
 from typing import Dict, Optional, Any
 from datetime import datetime, timedelta
 from tgtg import TgtgClient
-from telegram_notify import notify
-from tgtg_exceptions import (
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from common.telegram_notify import notify
+from common.tgtg_exceptions import (
     safe_tgtg_call, handle_tgtg_exception, get_user_friendly_error_message,
     TGTGCaptchaException, TGTGServiceException
 )

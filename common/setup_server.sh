@@ -94,7 +94,9 @@ if [ -f ".env" ] && [ -f "tgtg_credentials.json" ]; then
     echo "🔧 Testing TGTG checker..."
     python3 -c "
 try:
-    from tgtg_check import TGTGChecker
+    import sys
+    sys.path.insert(0, '.')
+    from single_user.tgtg_check import TGTGChecker
     checker = TGTGChecker()
     print('✅ TGTG checker initialized successfully!')
 except Exception as e:
@@ -131,9 +133,9 @@ echo "================================================"
 echo ""
 echo "Next steps:"
 echo "1. Edit .env file with your Telegram bot credentials"
-echo "2. Run 'python3 setup_tgtg.py' to set up TGTG authentication"
-echo "3. Test the system with 'python3 -c \"from tgtg_check import TGTGChecker; TGTGChecker().check_and_notify()\"'"
-echo "4. Install the crontab with 'crontab $CRONTAB_FILE'"
+echo "2. Run 'python3 common/setup_tgtg.py' to set up TGTG authentication"
+echo "3. Test the system with 'python3 -c \"import sys; sys.path.insert(0, '.'); from single_user.tgtg_check import TGTGChecker; TGTGChecker().check_and_notify()\"'"
+echo "4. Install the crontab with 'crontab single_user/crontab-simple.txt' or 'crontab multi_user/crontab-multi-user.txt'"
 echo ""
 echo "Files to configure:"
 echo "- .env (Telegram credentials)"
